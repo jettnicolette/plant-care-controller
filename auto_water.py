@@ -18,7 +18,14 @@ def read_channel(channel):
     result = ((adc[1] & 3) << 8) + adc[2]
     return result
 
-# Calculate Moisture
+
+# Calculate Instant Moisture
+def read_moisture():
+    raw_value = read_channel(0)
+    moisture = 1023 - raw_value  # Invert the value for moisture
+    return moisture
+    
+# Calculate Moisture Average
 def calculate_average_moisture():
     readings = []
     for _ in range(10):
@@ -50,8 +57,8 @@ try:
             threshold = float(input("Set moisture threshold (0-1023): "))
             print("Monitoring... Press Ctrl+C to stop.")
             while True:
-                avg_moisture = calculate_average_moisture()
-                print(f"Average Moisture: {avg_moisture:.1f}")
+                avg_moisture = read_moisture()
+                print(f"Moisture: {read_moisture:.1f}")
 
                 if avg_moisture < threshold:
                     print("Below threshold! Watering...")
