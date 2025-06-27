@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyd
+
+# VSCode
+.vscode/
+
+# Virtual Environments
+venv/
+.env/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Compiled C files (if eventually using C)
+*.out
+*.o
+
+# Secrets (if you use .env for keys)
+*.env
+*.key
+*.pem
+*.crt
+
+# Raspberry Pi Imager or OS Images
+*.img
+
+# Backup files
+*.bak
+*.swp
+*~
