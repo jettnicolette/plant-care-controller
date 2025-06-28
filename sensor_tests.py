@@ -10,7 +10,7 @@ spi.max_speed_hz = 1350000
 PH_CHANNEL = 1
 TDS_CHANNEL = 2
 
-REFERENCE_VOLTAGE = 5.0
+REFERENCE_VOLTAGE = 3.3
 
 # Placeholder calibration values (updated during calibration mode)
 voltage4_01 = 0.0
