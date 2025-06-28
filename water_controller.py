@@ -26,11 +26,11 @@ def read_channel(channel):
 
 def get_moisture(channel=0):
     """Read one moisture sample (raw)."""
-    return read_channel(channel)
+    return MAX_MOISTURE_READING - (read_channel(channel))
 
 def moisture_to_percent(reading):
     """Convert raw reading to percentage so that higher reading == wetter."""
-    return round((reading / MAX_MOISTURE_READING) * 100, 1)
+    return round(((MAX_MOISTURE_READING - reading) / MAX_MOISTURE_READING) * 100, 1)
 
 def water_for_seconds(seconds):
     """Turn pump on for specified duration."""
