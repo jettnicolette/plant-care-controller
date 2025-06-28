@@ -10,7 +10,7 @@ spi.max_speed_hz = 1350000
 PH_CHANNEL = 1
 TDS_CHANNEL = 2
 
-REFERENCE_VOLTAGE = 5.0
+REFERENCE_VOLTAGE = 5.18
 
 def read_channel(channel):
     assert 0 <= channel <= 7, "Invalid channel"
