@@ -30,7 +30,7 @@ def get_moisture(channel=0):
 
 def moisture_to_percent(reading):
     """Convert raw reading to percentage so that higher reading == wetter."""
-    return round(((MAX_MOISTURE_READING - reading) / MAX_MOISTURE_READING) * 100, 1)
+    return get_moisture() / MAX_MOISTURE_READING * 100
 
 def water_for_seconds(seconds):
     """Turn pump on for specified duration."""
