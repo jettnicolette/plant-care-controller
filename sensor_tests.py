@@ -10,9 +10,10 @@ spi.max_speed_hz = 1350000
 PH_CHANNEL = 1
 TDS_CHANNEL = 2
 
+# ADC reference voltage matches MCP3008 VREF (3.3V on Raspberry Pi)
 REFERENCE_VOLTAGE = 3.3
 
-# Placeholder calibration values (updated during calibration mode)
+# Calibration values (populated during calibration mode)
 voltage4_01 = 0.0
 voltage9_18 = 0.0
 slope = 1.0
@@ -21,25 +22,31 @@ intercept = 0.0
 def read_channel(channel):
     assert 0 <= channel <= 7, "Invalid channel"
     adc = spi.xfer2([1, (8 + channel) << 4, 0])
-    data = ((adc[1] & 3) << 8) + adc[2]
-    return data
+    return ((adc[1] & 3) << 8) + adc[2]
+
 
 def convert_voltage(raw_value):
+    # Convert raw ADC reading to voltage (0–VREF)
     return (raw_value / 1023) * REFERENCE_VOLTAGE
 
+
 def convert_ph(voltage):
+    # Apply two-point calibration
     return slope * voltage + intercept
 
+
 def convert_tds(voltage):
+    # TDS conversion formula (EC to PPM) with correction factor
     tds_ppm = (133.42 * voltage**3) - (255.86 * voltage**2) + (857.39 * voltage)
-    tds_ppm *= 0.5  # Correction factor
-    return tds_ppm
+    return tds_ppm * 0.5
+
 
 def read_ph():
     raw = read_channel(PH_CHANNEL)
     voltage = convert_voltage(raw)
     ph = convert_ph(voltage)
     print(f"Instant pH Reading: {ph:.2f}")
+
 
 def read_ph_avg():
     readings = []
@@ -51,11 +58,13 @@ def read_ph_avg():
     ph = convert_ph(voltage)
     print(f"Average pH Reading over 1 minute: {ph:.2f}")
 
+
 def read_tds():
     raw = read_channel(TDS_CHANNEL)
     voltage = convert_voltage(raw)
-    tds_ppm = convert_tds(voltage)
-    print(f"Instant TDS Reading: {tds_ppm:.2f} ppm")
+    tds = convert_tds(voltage)
+    print(f"Instant TDS Reading: {tds:.2f} ppm")
+
 
 def read_tds_avg():
     readings = []
@@ -64,8 +73,9 @@ def read_tds_avg():
         time.sleep(1)
     avg_raw = sum(readings) / len(readings)
     voltage = convert_voltage(avg_raw)
-    tds_ppm = convert_tds(voltage)
-    print(f"Average TDS Reading over 1 minute: {tds_ppm:.2f} ppm")
+    tds = convert_tds(voltage)
+    print(f"Average TDS Reading over 1 minute: {tds:.2f} ppm")
+
 
 def ph_mode():
     while True:
@@ -83,6 +93,7 @@ def ph_mode():
         else:
             print("Invalid selection.")
 
+
 def tds_mode():
     while True:
         print("\n--- TDS Mode ---")
@@ -99,48 +110,45 @@ def tds_mode():
         else:
             print("Invalid selection.")
 
+
 def calibration_mode():
     global voltage4_01, voltage9_18, slope, intercept
-
     while True:
         print("\n--- Calibration Mode ---")
-        print("1. Print pH Sensor Voltage Continuously")
-        print("2. Print TDS Sensor Voltage Continuously")
-        print("3. Input Calibration Voltages and Calculate pH Formula")
+        print("1. Debug: Print pH Sensor Raw & Voltage Continuously")
+        print("2. Debug: Print TDS Sensor Raw & Voltage Continuously")
+        print("3. Input Calibration Voltages (pH 4.01 & 9.18)")
         print("4. Return to Main Menu")
         choice = input("Select an option: ")
-
         if choice == "1":
             try:
                 while True:
                     raw = read_channel(PH_CHANNEL)
                     voltage = convert_voltage(raw)
-                    print(f"pH Sensor Voltage: {voltage:.3f} V")
+                    print(f"Raw: {raw:4d}   Voltage: {voltage:.3f} V")
                     time.sleep(1)
             except KeyboardInterrupt:
                 print("\nExiting continuous read.")
-
         elif choice == "2":
             try:
                 while True:
                     raw = read_channel(TDS_CHANNEL)
                     voltage = convert_voltage(raw)
-                    print(f"TDS Sensor Voltage: {voltage:.3f} V")
+                    print(f"Raw: {raw:4d}   Voltage: {voltage:.3f} V")
                     time.sleep(1)
             except KeyboardInterrupt:
                 print("\nExiting continuous read.")
-
         elif choice == "3":
-            voltage4_01 = float(input("Enter voltage measured in pH 4.01 solution: "))
-            voltage9_18 = float(input("Enter voltage measured in pH 9.18 solution: "))
+            voltage4_01 = float(input("Voltage in pH 4.01 solution: "))
+            voltage9_18 = float(input("Voltage in pH 9.18 solution: "))
             slope = (9.18 - 4.01) / (voltage9_18 - voltage4_01)
             intercept = 4.01 - (slope * voltage4_01)
-            print(f"Calibration complete. Slope: {slope:.3f}, Intercept: {intercept:.3f}")
-
+            print(f"Calibration: slope={slope:.3f}, intercept={intercept:.3f}")
         elif choice == "4":
             break
         else:
             print("Invalid selection.")
+
 
 def main():
     while True:
@@ -150,7 +158,6 @@ def main():
         print("3. Calibration Mode")
         print("4. Exit")
         choice = input("Select a mode: ")
-
         if choice == "1":
             ph_mode()
         elif choice == "2":
