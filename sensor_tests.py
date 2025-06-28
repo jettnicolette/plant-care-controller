@@ -10,35 +10,56 @@ spi.max_speed_hz = 1350000
 PH_CHANNEL = 1
 TDS_CHANNEL = 2
 
+REFERENCE_VOLTAGE = 5.0
+
 def read_channel(channel):
     assert 0 <= channel <= 7, "Invalid channel"
     adc = spi.xfer2([1, (8 + channel) << 4, 0])
     data = ((adc[1] & 3) << 8) + adc[2]
     return data
 
+def convert_voltage(raw_value):
+    return (raw_value / 1023) * REFERENCE_VOLTAGE
+
+def convert_ph(voltage):
+    return 7 + ((voltage - 2.5) * (7 / 2.5))
+
+def convert_tds(voltage):
+    tds_ppm = (133.42 * voltage**3) - (255.86 * voltage**2) + (857.39 * voltage)
+    tds_ppm *= 0.5  # Correction factor
+    return tds_ppm
+
 def read_ph():
     raw = read_channel(PH_CHANNEL)
-    print(f"Instant pH Raw Reading: {raw}")
+    voltage = convert_voltage(raw)
+    ph = convert_ph(voltage)
+    print(f"Instant pH Reading: {ph:.2f}")
 
 def read_ph_avg():
     readings = []
     for _ in range(60):
         readings.append(read_channel(PH_CHANNEL))
         time.sleep(1)
-    avg = sum(readings) / len(readings)
-    print(f"Average pH Raw Reading over 1 minute: {avg:.2f}")
+    avg_raw = sum(readings) / len(readings)
+    voltage = convert_voltage(avg_raw)
+    ph = convert_ph(voltage)
+    print(f"Average pH Reading over 1 minute: {ph:.2f}")
 
 def read_tds():
     raw = read_channel(TDS_CHANNEL)
-    print(f"Instant TDS Raw Reading: {raw}")
+    voltage = convert_voltage(raw)
+    tds_ppm = convert_tds(voltage)
+    print(f"Instant TDS Reading: {tds_ppm:.2f} ppm")
 
 def read_tds_avg():
     readings = []
     for _ in range(60):
         readings.append(read_channel(TDS_CHANNEL))
         time.sleep(1)
-    avg = sum(readings) / len(readings)
-    print(f"Average TDS Raw Reading over 1 minute: {avg:.2f}")
+    avg_raw = sum(readings) / len(readings)
+    voltage = convert_voltage(avg_raw)
+    tds_ppm = convert_tds(voltage)
+    print(f"Average TDS Reading over 1 minute: {tds_ppm:.2f} ppm")
 
 def ph_mode():
     while True:
