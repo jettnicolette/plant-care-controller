@@ -20,24 +20,17 @@ spi.max_speed_hz = 1350000  # SPI speed for MCP3008
 # ====== FUNCTIONS ======
 
 def read_channel(channel):
-    """Read analog value from MCP3008 channel."""
+    """Read analog value from MCP3008 channel (0–1023)."""
     adc = spi.xfer2([1, (8 + channel) << 4, 0])
-    result = ((adc[1] & 3) << 8) + adc[2]
-    return result
+    return ((adc[1] & 3) << 8) + adc[2]
 
-def get_average_moisture(samples=5, delay=1):
-    """Take multiple moisture readings and return average."""
-    readings = []
-    for _ in range(samples):
-        reading = read_channel(0)
-        readings.append(reading)
-        time.sleep(delay)
-    return 1023 - (sum(readings) / len(readings))
+def get_moisture(channel=0):
+    """Read one moisture sample (raw)."""
+    return read_channel(channel)
 
 def moisture_to_percent(reading):
-    """Convert raw moisture reading to percentage (higher = wetter)."""
-    percentage = ((MAX_MOISTURE_READING - reading) / MAX_MOISTURE_READING) * 100
-    return round(percentage, 1)
+    """Convert raw reading to percentage so that higher reading == wetter."""
+    return round((reading / MAX_MOISTURE_READING) * 100, 1)
 
 def water_for_seconds(seconds):
     """Turn pump on for specified duration."""
@@ -49,18 +42,15 @@ def water_for_seconds(seconds):
 
 def water_by_liters(liters):
     """Dispense water based on liters."""
-    seconds = liters * SECONDS_PER_LITER
-    water_for_seconds(seconds)
+    water_for_seconds(liters * SECONDS_PER_LITER)
 
 def water_by_gallons(gallons):
     """Dispense water based on gallons."""
-    seconds = gallons * SECONDS_PER_GALLON
-    water_for_seconds(seconds)
+    water_for_seconds(gallons * SECONDS_PER_GALLON)
 
 # ====== Moisture-Based Sub-Menu ======
 
 def moisture_menu():
-    """Sub-menu for moisture monitoring and automated watering."""
     try:
         while True:
             print("\n=== Moisture-Based Watering Menu ===")
@@ -72,18 +62,19 @@ def moisture_menu():
             choice = input("Select an option: ")
 
             if choice == "1":
-                moisture = get_average_moisture()
-                print(f"Average Moisture Reading: {moisture:.2f} ({moisture_to_percent(moisture)}%)")
+                reading = get_moisture()
+                percent = moisture_to_percent(reading)
+                print(f"Moisture Reading: {reading} ({percent}%)")
 
             elif choice == "2":
                 threshold = float(input("Set moisture threshold (0-100%): "))
                 print("Monitoring moisture... (Ctrl+C to stop)")
                 while True:
-                    moisture = get_average_moisture()
-                    percent = moisture_to_percent(moisture)
-                    print(f"Moisture: {moisture:.2f} ({percent}%)")
+                    reading = get_moisture()
+                    percent = moisture_to_percent(reading)
+                    print(f"Moisture: {reading} ({percent}%)")
                     if percent < threshold:
-                        print("Below threshold! Watering...")
+                        print("Below threshold! Watering 1 L...")
                         water_by_liters(1)
                         time.sleep(60)
                     else:
@@ -91,13 +82,13 @@ def moisture_menu():
                     time.sleep(10)
 
             elif choice == "3":
-                target_percent = float(input("Enter target moisture percentage (0-100%): "))
+                target = float(input("Enter target moisture percentage (0-100%): "))
                 print("Watering in increments until target moisture is reached...")
                 while True:
-                    moisture = get_average_moisture()
-                    percent = moisture_to_percent(moisture)
-                    print(f"Current Moisture: {moisture:.2f} ({percent}%)")
-                    if percent >= target_percent:
+                    reading = get_moisture()
+                    percent = moisture_to_percent(reading)
+                    print(f"Current Moisture: {reading} ({percent}%)")
+                    if percent >= target:
                         print("Target moisture reached!")
                         break
                     else:
@@ -117,7 +108,6 @@ def moisture_menu():
 # ====== MAIN MENU ======
 
 def main_menu():
-    """Main menu for manual watering and moisture options."""
     try:
         while True:
             print("\n=== Watering System Menu ===")
