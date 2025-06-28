@@ -32,7 +32,7 @@ def get_average_moisture(samples=5, delay=1):
         reading = read_channel(0)
         readings.append(reading)
         time.sleep(delay)
-    return sum(readings) / len(readings)
+    return 1023 - (sum(readings) / len(readings))
 
 def moisture_to_percent(reading):
     """Convert raw moisture reading to percentage (higher = wetter)."""
