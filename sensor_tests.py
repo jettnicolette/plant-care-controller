@@ -10,7 +10,13 @@ spi.max_speed_hz = 1350000
 PH_CHANNEL = 1
 TDS_CHANNEL = 2
 
-REFERENCE_VOLTAGE = 5.18
+REFERENCE_VOLTAGE = 5.0
+
+# Placeholder calibration values (updated during calibration mode)
+voltage4_01 = 0.0
+voltage9_18 = 0.0
+slope = 1.0
+intercept = 0.0
 
 def read_channel(channel):
     assert 0 <= channel <= 7, "Invalid channel"
@@ -22,7 +28,7 @@ def convert_voltage(raw_value):
     return (raw_value / 1023) * REFERENCE_VOLTAGE
 
 def convert_ph(voltage):
-    return 7 + ((voltage - 2.5) * (7 / 2.5))
+    return slope * voltage + intercept
 
 def convert_tds(voltage):
     tds_ppm = (133.42 * voltage**3) - (255.86 * voltage**2) + (857.39 * voltage)
@@ -93,12 +99,56 @@ def tds_mode():
         else:
             print("Invalid selection.")
 
+def calibration_mode():
+    global voltage4_01, voltage9_18, slope, intercept
+
+    while True:
+        print("\n--- Calibration Mode ---")
+        print("1. Print pH Sensor Voltage Continuously")
+        print("2. Print TDS Sensor Voltage Continuously")
+        print("3. Input Calibration Voltages and Calculate pH Formula")
+        print("4. Return to Main Menu")
+        choice = input("Select an option: ")
+
+        if choice == "1":
+            try:
+                while True:
+                    raw = read_channel(PH_CHANNEL)
+                    voltage = convert_voltage(raw)
+                    print(f"pH Sensor Voltage: {voltage:.3f} V")
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                print("\nExiting continuous read.")
+
+        elif choice == "2":
+            try:
+                while True:
+                    raw = read_channel(TDS_CHANNEL)
+                    voltage = convert_voltage(raw)
+                    print(f"TDS Sensor Voltage: {voltage:.3f} V")
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                print("\nExiting continuous read.")
+
+        elif choice == "3":
+            voltage4_01 = float(input("Enter voltage measured in pH 4.01 solution: "))
+            voltage9_18 = float(input("Enter voltage measured in pH 9.18 solution: "))
+            slope = (9.18 - 4.01) / (voltage9_18 - voltage4_01)
+            intercept = 4.01 - (slope * voltage4_01)
+            print(f"Calibration complete. Slope: {slope:.3f}, Intercept: {intercept:.3f}")
+
+        elif choice == "4":
+            break
+        else:
+            print("Invalid selection.")
+
 def main():
     while True:
         print("\n=== Sensor Testing Menu ===")
         print("1. pH Mode")
         print("2. TDS Mode")
-        print("3. Exit")
+        print("3. Calibration Mode")
+        print("4. Exit")
         choice = input("Select a mode: ")
 
         if choice == "1":
@@ -106,6 +156,8 @@ def main():
         elif choice == "2":
             tds_mode()
         elif choice == "3":
+            calibration_mode()
+        elif choice == "4":
             print("Exiting...")
             break
         else:
