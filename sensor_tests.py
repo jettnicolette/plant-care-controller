@@ -11,7 +11,7 @@ PH_CHANNEL = 1
 TDS_CHANNEL = 2
 
 # ADC reference voltage matches MCP3008 VREF (3.3V on Raspberry Pi)
-REFERENCE_VOLTAGE = 3.3
+REFERENCE_VOLTAGE = 5.0
 
 # Calibration values (populated during calibration mode)
 voltage4_01 = 0.0
@@ -38,7 +38,7 @@ def convert_ph(voltage):
 def convert_tds(voltage):
     # TDS conversion formula (EC to PPM) with correction factor
     tds_ppm = (133.42 * voltage**3) - (255.86 * voltage**2) + (857.39 * voltage)
-    return tds_ppm * 0.5
+    return tds_ppm * 0.25
 
 
 def read_ph():
@@ -110,61 +110,19 @@ def tds_mode():
         else:
             print("Invalid selection.")
 
-
-def calibration_mode():
-    global voltage4_01, voltage9_18, slope, intercept
-    while True:
-        print("\n--- Calibration Mode ---")
-        print("1. Debug: Print pH Sensor Raw & Voltage Continuously")
-        print("2. Debug: Print TDS Sensor Raw & Voltage Continuously")
-        print("3. Input Calibration Voltages (pH 4.01 & 9.18)")
-        print("4. Return to Main Menu")
-        choice = input("Select an option: ")
-        if choice == "1":
-            try:
-                while True:
-                    raw = read_channel(PH_CHANNEL)
-                    voltage = convert_voltage(raw)
-                    print(f"Raw: {raw:4d}   Voltage: {voltage:.3f} V")
-                    time.sleep(1)
-            except KeyboardInterrupt:
-                print("\nExiting continuous read.")
-        elif choice == "2":
-            try:
-                while True:
-                    raw = read_channel(TDS_CHANNEL)
-                    voltage = convert_voltage(raw)
-                    print(f"Raw: {raw:4d}   Voltage: {voltage:.3f} V")
-                    time.sleep(1)
-            except KeyboardInterrupt:
-                print("\nExiting continuous read.")
-        elif choice == "3":
-            voltage4_01 = float(input("Voltage in pH 4.01 solution: "))
-            voltage9_18 = float(input("Voltage in pH 9.18 solution: "))
-            slope = (9.18 - 4.01) / (voltage9_18 - voltage4_01)
-            intercept = 4.01 - (slope * voltage4_01)
-            print(f"Calibration: slope={slope:.3f}, intercept={intercept:.3f}")
-        elif choice == "4":
-            break
-        else:
-            print("Invalid selection.")
-
-
 def main():
     while True:
         print("\n=== Sensor Testing Menu ===")
         print("1. pH Mode")
         print("2. TDS Mode")
-        print("3. Calibration Mode")
-        print("4. Exit")
+        
+        print("3. Exit")
         choice = input("Select a mode: ")
         if choice == "1":
             ph_mode()
         elif choice == "2":
             tds_mode()
         elif choice == "3":
-            calibration_mode()
-        elif choice == "4":
             print("Exiting...")
             break
         else:
